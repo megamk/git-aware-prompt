@@ -1,14 +1,22 @@
 find_git_branch() {
   # Based on: http://stackoverflow.com/a/13003854/170413
   local branch
-  if branch=$(git rev-parse --abbrev-ref HEAD 2> /dev/null); then
+  exec 3>&2
+  exec 2> /dev/null
+  if branch=$(git status -sb | head -n 1 | sed 's/^## //g' | sed 's/\.\.\./ -> /g' | sed 's/origin/o/g' | sed 's/upstream/u/'); then
     if [[ "$branch" == "HEAD" ]]; then
       branch='detached*'
     fi
-    git_branch="($branch)"
+    if [[ "$branch" != "" ]]; then
+        remotes=$(git remote | awk '{print substr($1,1,1)}' | tr '\n' ',' | sed 's/,$//g')
+        git_branch="($branch) [$remotes]"
+    else
+        git_branch=""
+    fi
   else
     git_branch=""
   fi
+  exec 2>&3
 }
 
 find_git_dirty() {
